@@ -55,6 +55,28 @@ function migrateClassesSupport() {
   }
 }
 
+function ensureDemoCredentials() {
+  const demoUsers = [
+    { username: 'admin', password: 'admin123', role: 'admin', name: 'Administrateur' },
+    { username: 'prof1', password: 'prof123', role: 'teacher', name: 'Prof. Mohammed Alami' },
+    { username: 'etud1', password: 'etud123', role: 'student', name: 'Ahmed Bennani' },
+  ];
+
+  const updateUser = db.prepare('UPDATE users SET password = ?, role = ?, name = ? WHERE username = ?');
+
+  for (const demoUser of demoUsers) {
+    const row = db.prepare('SELECT id FROM users WHERE username = ?').get(demoUser.username);
+    if (!row) continue;
+
+    updateUser.run(
+      bcrypt.hashSync(demoUser.password, 10),
+      demoUser.role,
+      demoUser.name,
+      demoUser.username
+    );
+  }
+}
+
 function initializeDatabase() {
   migrateUsersTable();
 
@@ -126,6 +148,8 @@ function initializeDatabase() {
       );
       console.log('Admin user created.');
     }
+
+    ensureDemoCredentials();
 
     // Assign all subjects to any teacher that has no assignments yet
     const teachersWithoutSubjects = db.prepare(`
@@ -206,6 +230,8 @@ function initializeDatabase() {
   insertGrade.run(s1.lastInsertRowid, phys.lastInsertRowid, teacherId, 12.0, 'S1');
   insertGrade.run(s1.lastInsertRowid, angl.lastInsertRowid, teacherId, 15.0, 'S1');
   insertGrade.run(s1.lastInsertRowid, fran.lastInsertRowid, teacherId, 13.5, 'S1');
+
+  ensureDemoCredentials();
 
   // Student 1 - S2
   insertGrade.run(s1.lastInsertRowid, math.lastInsertRowid, teacherId, 15.0, 'S2');
